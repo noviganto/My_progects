@@ -1,0 +1,1365 @@
+#include <iostream> // библиотека для работы с объектами класса ostream и istream (cout)
+#include <fstream> // библиотека для работы с файловыми потоками
+#include <stdlib.h> // библиотека для работы exit()
+#include <string> // библиотека для работы со строковыми функциями
+#include <vector> // библиотека для работы с массивами типа vector
+#include <cctype> // библиотека для работы isdigit()
+#include <conio.h> // библиотека для работы _getch()
+#include <windows.h> // библиотека для работы sleep()
+#include <ctime> // библиотека для подключения структуры времени
+
+using namespace std; // обявление пространства имён std
+
+vector <int> last_ans; // вектор, в котором содержится последний результат вычислений
+string last_answer; // строка, в которой содержится последний результат вычислений
+string last_operation; // строка, в которой лежит название последней выполненной операции
+string last_plus_minus; // переменная, отвечающая за знак в начале реузльтата
+
+// открытие файлового потока на дозапись
+ofstream log_file("log.txt", ios::app);
+
+// функция записи даты и времени в файл логирования
+void Date(ofstream& file)
+{
+    string output_string = ""; // строка для вывода в файл операции
+
+    SYSTEMTIME st; // подключение структуры времени
+    GetLocalTime(&st);
+
+    output_string.insert(0, 200, '='); // создание разделительной строки
+    file << output_string << endl; // запись разделительной строки в файл 
+
+    file << st.wDay << "." << st.wMonth << "." << st.wYear << "   " << st.wHour << ":" << st.wMinute << ":" << st.wSecond << endl; // запись даты и времени
+
+    file << output_string << endl; // запись разделительной строки в файл
+}
+// конец функции Date
+
+// функция записи операций в файл логирования 
+void Recording_to_file(ofstream& file, string first, string second, string first_sign, string second_sign, char operation_sign, string answer)
+{
+    ofstream log_file("log.txt", ios::app);
+
+    Date(log_file);
+
+    if (first_sign == "-") // если первое число отрицательное
+        file << first_sign; // записать знак минус в файл
+    else
+        file << " "; // иначе записать пробел
+
+    file << first << endl; // запись первого числа
+
+    file << operation_sign << endl; // запись знака операции
+
+    if (second_sign == "-") // если второе число является отрицательным
+        file << second_sign; // записать знак минус в файл
+    else
+        file << " "; // иначе записать пробел
+
+    file << second << endl; // запись первого числа
+
+    file << "=" << endl; // запись первого числа
+
+    if (last_plus_minus == "-") // если результат отрицательный
+        file << last_plus_minus; // записать знак минус в файл
+    else
+        file << " "; // иначе записать пробел
+
+    file << answer << endl; // запись первого числа
+}
+// конец функции Recording_to_file
+
+// функция перевода значения из типа vector в тип string
+string Func_Output(vector <int>& out_answer, string order) // передаётся вектор, который надо вывести, и значение, откуда следует удалять нули
+{
+    string calc_result; // результат вычислений
+    string stop = " "; // остановка удаления лишних нулей
+    int descending = 0; // счётчик в цикле
+    string element; // переменная, хранящая переведённое число в строку
+
+    //если порядок удаления равен началу массива
+    if (order == "first")
+    {
+        //делать, пока не встретиться стоп-сигнал
+        do
+        {
+            if (out_answer.front() == 0 && out_answer.size() > 1) // если первый элемент вектора равен нулю
+            {
+                out_answer.erase(out_answer.begin()); // удаление первого элемента
+            }
+
+            else
+                stop = "stop"; // иначе появляется стоп-сигнал
+
+        } while (stop != "stop");
+
+        // из массива -> в строчный ответ
+        for (descending = 0; descending < out_answer.size(); descending++)
+        {
+            element = to_string(out_answer[descending]); // перевод цифры в строку
+            calc_result = calc_result + element; // добавление подстроки в строку ответа
+        }
+    }
+
+    //если порядок удаления равен концу массива
+    if (order == "last")
+    {
+        do
+        {
+            if (out_answer.back() == 0 && out_answer.size() > 1) // если последний элемент вектора равен нулю
+            {
+                out_answer.pop_back(); // удаление последнего элемента
+            }
+
+            else
+                stop = "stop"; // иначе появляется стоп-сигнал
+
+        } while (stop != "stop");
+
+        // из массива -> в строчный ответ
+        for (descending = out_answer.size(); descending > 0; descending--)
+        {
+            element = to_string(out_answer[descending - 1]); // перевод цифры в строку
+            calc_result = calc_result + element; // добавление подстроки в строку ответа
+        }
+    }
+
+    // если массив пустой
+    if (out_answer.empty())
+        calc_result = "0"; // ответом является ноль
+
+    return calc_result; // вывод результата функции
+}
+// конец функции Func_Output
+
+// функция перевода значения из типа string в тип vector
+void Func_Completion(string original, vector <int>& complection, int length_max, int length_original) // строка, изменяемый вектор, максимальная длина
+{
+    complection.clear(); // очистка вектора
+    int int_char = 0; // целочисленная переменная, в которой хранится переведённая цифра из строкового формата в целочисленный
+    int passage = 0; // переменная - счётчик в циклах
+    string separate_fig; // строковая переменная, отвечающая за хранение отдельной цифры числа
+    int ser_numb = 0; // целочисленная переменная, отвечающая за порядковый номер в массиве
+
+    // циклом заполняется массив
+    for (int counter_up = 0; counter_up < length_max; counter_up++)
+    {
+        complection.push_back(0); // заполнение нулями
+    }
+
+    // заполнение происходит с конца в начало,
+    // начиная со старших разрядов и заканчивая младшими разрядами
+    for (passage = length_original - 1; passage >= 0; passage--)
+    {
+        separate_fig = original.substr(passage, 1); //копирование цифры в отдельную переменную
+
+        if (separate_fig != "")
+        {
+            int_char = stoi(separate_fig); // перевод в целочисленный формат из строкового
+            complection[ser_numb] = int_char; // присвоение значения элементу массива
+            ser_numb++; // увеличение счётчика
+        }
+
+    }
+    // в функции заполняется массив нулями, а затем в него помещается отформатированное число
+    // функция является процедурой и ничего не возвращает
+}
+// конец функции Func_Completion
+
+// функция для нахождения плюса и минуса перед числом и их удаления
+string Func_Cut_String(string& cut_string) // передаётся вводимая пользователем строка
+{
+    string plus_minus = "+"; // переменная, отвечающая за знак в начале числа
+
+    if (cut_string[0] == '-') // если первым символом является минус
+    {
+        plus_minus = "-"; // переменной присваивается минус
+        cut_string.erase(0, 1); // удаление минуса из строки
+    }
+
+    if (cut_string[0] == '+') // если первым символом является плюс
+    {
+        plus_minus = "+"; // переменной присваивается плюс
+        cut_string.erase(0, 1); // удаление плюса из строки
+    }
+
+    return plus_minus; // вывод результата
+}
+// конец функции Func_Cut_String
+
+// функция, выполняющая сравнение чисел
+int Func_Comparison(string first_compared, string second_compared) // передаются вводимые пользователем строки
+{
+
+    int more_less = 3; // переменная, хранящая значение о том, какое из введённых чисел больше
+
+    // сравнение длин для операции вычитания и деления
+    if (first_compared.length() > second_compared.length())
+        more_less = 1; // если первое число длиннее
+
+    else if (first_compared.length() < second_compared.length())
+        more_less = 2; // если второе число длиннее
+
+    else // если длины равны
+    {
+        for (int i = 0; i < first_compared.length(); i++) // поразрядное сравнение весов чисел
+        {
+            if (first_compared[i] > second_compared[i]) // если разряд первого числа больше
+            {
+                more_less = 1; // значит первое число длиннее второго
+                break; // выход из цикла for
+            }
+
+            if (first_compared[i] < second_compared[i]) // если разряд второго числа больше
+            {
+                more_less = 2; // значит второе число длиннее первого
+                break; // выход из цикла for
+            }
+        }
+    }
+
+    return more_less;
+}
+//конец функции Func_Comparison
+
+// функция, выполняющая операцию сложения
+vector <int> Func_Addition(int length, string first_summand, string second_summand, string first_sign, string second_sign, vector <int>& add_answer, string& last_operation, int choice_user) // передаётся общая длина строк, первое и второе число, вектор, хранящий сумму, строка с названием операции, итого
+{
+
+    vector <int> summand_one; // первый вектор-слагаемое 
+    vector <int> summand_two; // второй вектор-слагаемое
+    add_answer.clear(); // очистка вектора ответа
+
+    int forward = 0; // счётчик в цикле
+    int remains = 0; // остаток, который может получиться при сложении, поэтому делим его нацело
+
+    Func_Completion(first_summand, summand_one, length, first_summand.length()); // перевод первой строки в вектор
+    Func_Completion(second_summand, summand_two, length, second_summand.length()); // перевод первой строки в вектор
+
+    for (int counter = 0; counter < length; counter++)
+        add_answer.push_back(0); // заполнение вектора ответа нулями 
+
+    for (forward = 0; forward < length; forward++)
+    {
+        // сложение соответсвующих разрядов чисел
+        remains = remains + summand_one[forward] + summand_two[forward];
+        // запись в массив для ответа остаток от деления на 10
+        add_answer[length - 1 - forward] = remains % 10;
+        // сохранение целой части от деления суммы разрядов на 10
+        remains /= 10;
+    }
+
+        int number_comparison = Func_Comparison(first_summand, second_summand); // если 1 - первое число больше, если 2 - второе, если 3 - равны
+
+    // Распределение знаков
+    /*if ((choice_user == 49 && (first_sign == "-" && second_sign == "-")) || (choice_user == 50 && (first_sign == "-" && second_sign == "+")))
+        last_plus_minus = "-";
+    else
+        last_plus_minus = "+";*/
+
+    last_ans = add_answer;
+
+    last_answer = Func_Output(add_answer, "first");
+
+    last_operation = "Addition";
+
+    return (add_answer);
+}
+// конец функции Func_addition
+
+// функция, выполняющая операцию вычитания
+vector <int> Func_Subtraction(int sum_of_lengths, int choice_greater_number, string reduced, string deductible, string first_sign, string second_sign, vector <int>& difference_answer, string& last_operation, int choice_user) // переменная, отвечающая, какое число больше; первая строка, вторая строка, вектор, хранящий разность, строка с названием операции
+{
+
+    vector <int> vector_reduced; // вектор-уменьшаемое
+    vector <int> vector_deductible; // вектор-вычитаемое
+    difference_answer.clear(); // очистка вектора ответа
+
+    sum_of_lengths = 0; // сумма длин строк
+    int move = 0; // счётчик в циклах
+
+    sum_of_lengths = reduced.length() + deductible.length();
+
+    Func_Completion(reduced, vector_reduced, sum_of_lengths, reduced.length()); // перевод первой строки в вектор
+    Func_Completion(deductible, vector_deductible, sum_of_lengths, deductible.length()); // перевод второй строки в вектор
+
+    for (move = 0; move < sum_of_lengths; move++)
+        difference_answer.push_back(0); // заполнение вектора ответа нулями
+
+    // оператор switch  
+    switch (choice_greater_number)
+    {
+
+    case 2: // 2 - второе число больше первого
+
+        // реализация вычитания первого числа из второго
+        for (move = 0; move < vector_deductible.size(); move++)
+        {
+            if (vector_deductible[move] < vector_reduced[move]) // если разряд второго числа больше разряда первого
+            {
+                vector_deductible[move + 1]--; // последующий разряд второго числа уменьшается на 1
+                difference_answer[move] += 10 + vector_deductible[move] - vector_reduced[move]; // в массив для ответа записывается разница элементов
+            }
+
+            else
+                difference_answer[move] += vector_deductible[move] - vector_reduced[move]; // в элемент записывается разница разрядов
+
+            if (difference_answer[move] / 10 > 0) // если целая часть от деления на 10 больше
+            {
+                difference_answer[move + 1]++; // последующий элемент в массиве для ответа увеличивается на 1
+                difference_answer[move] %= 10; // элемент перезаписывается остатком от деления на 10
+            }
+
+        }
+
+        break;
+
+    case 1: // 1 - первое число больше второго
+
+        // реализация вычитания второго числа из первого
+        for (move = 0; move < vector_reduced.size(); move++)
+        {
+            if (vector_reduced[move] < vector_deductible[move]) // если разряд первого числа больше разряда второго
+            {
+                vector_reduced[move + 1]--; // последующий разряд первого числа уменьшается на 1
+                difference_answer[move] += 10 + vector_reduced[move] - vector_deductible[move]; // в элемент записывается разница разрядов
+            }
+
+            else
+                difference_answer[move] += vector_reduced[move] - vector_deductible[move]; // в элемент записывается разница разрядов
+
+            if (difference_answer[move] / 10 > 0) // если целая часть от деления на 10 больше
+            {
+                difference_answer[move + 1]++; // последующий элемент в массиве для ответа увеличивается на 1
+                difference_answer[move] %= 10; // элемент перезаписывается остатком от деления на 10
+            }
+
+        }
+
+        break;
+
+    case 3: // 3 - числа равны
+    {
+        difference_answer[0] = 0;
+    }
+
+    break;
+
+    default: break;
+
+    }
+
+    int number_comparison = Func_Comparison(reduced, deductible); // если 1 - первое число больше, если 2 - второе, если 3 - равны
+
+    // т.к. операция вычитания используется в функции деления, то необходимо это условие
+    if (last_operation != "Division")
+    {
+
+        // Распределение знаков
+        if (number_comparison == 1 && choice_user == 49 && (first_sign == "+" && second_sign == "-"))
+            last_plus_minus = "+";
+        if (number_comparison == 2 && choice_user == 49 && (first_sign == "+" && second_sign == "-"))
+            last_plus_minus = "-";
+        if (number_comparison == 1 && choice_user == 49 && (first_sign == "-" && second_sign == "+"))
+            last_plus_minus = "-";
+        if (number_comparison == 2 && choice_user == 49 && (first_sign == "-" && second_sign == "+"))
+            last_plus_minus = "+";
+
+        if (number_comparison == 1 && choice_user == 50 && (first_sign == "-" && second_sign == "-"))
+            last_plus_minus = "-";
+        if (number_comparison == 2 && choice_user == 50 && (first_sign == "-" && second_sign == "-"))
+            last_plus_minus = "+";
+        if (number_comparison == 1 && choice_user == 50 && (first_sign == "+" && second_sign == "+"))
+            last_plus_minus = "+";
+        if (number_comparison == 2 && choice_user == 50 && (first_sign == "+" && second_sign == "+"))
+            last_plus_minus = "-";
+
+        last_ans = difference_answer;
+
+        last_answer = Func_Output(difference_answer, "last");
+
+        last_operation = "Subtraction";
+
+    }
+
+    return difference_answer; // вывод результата
+}
+// конец функции Func_subtraction
+
+// фунцкция, выполняющая операцию умножения
+vector <int> Func_Multiplication(int length_mult, string multiplier_one, string multiplier_two, string first_sign, string second_sign, vector <int>& composition_answer, string& last_operation, int choice_user) // длина строк, первое число, второе число, вектор, хранящий произведение, строка с названием операции
+{
+
+    vector <int> first_multiplier; // первый вектор-множитель 
+    vector <int> second_multiplier; // второй вектор-множитель
+    composition_answer.clear(); // очистка вектора ответа
+
+    int numb_1 = 0, numb_2 = 0; // счётчики в циклaх
+    int first_length = multiplier_one.length();
+    int second_length = multiplier_two.length();
+
+    Func_Completion(multiplier_one, first_multiplier, length_mult, multiplier_one.length()); // перевод первой строки в вектор
+    Func_Completion(multiplier_two, second_multiplier, length_mult, multiplier_two.length()); // перевод первой строки в вектор
+
+    for (int cycle = 0; cycle < length_mult; cycle++)
+        composition_answer.push_back(0); // заполнение вектора ответа нулями
+
+    // перемножение каждой цифры первого числа на цифру второго числа
+    for (numb_1 = 0; numb_1 < first_length; numb_1++)
+        for (numb_2 = 0; numb_2 < second_length; numb_2++)
+            composition_answer[numb_1 + numb_2] += first_multiplier[numb_1] * second_multiplier[numb_2]; // вектор, состоящий из произведений цифр
+
+    for (numb_1 = 0; numb_1 < length_mult - 1; numb_1++)
+    {
+        //увеличение последующего элемента на целую часть от деления на 10 текущего элемента
+        composition_answer[numb_1 + 1] += composition_answer[numb_1] / 10;
+        composition_answer[numb_1] %= 10; // перезаписывание в элемент остатка от деления на 10
+    }
+
+
+    // Распределение знаков
+    if (first_sign == "-" && second_sign == "-")
+        last_plus_minus = "+";
+
+    if (first_sign == "+" && second_sign == "+")
+        last_plus_minus = "+";
+
+    if ((first_sign == "-" && second_sign == "+") || (first_sign == "+" && second_sign == "-"))
+        last_plus_minus = "-";
+
+    last_operation = "Multiplication";
+
+    last_ans = composition_answer;
+
+    last_answer = Func_Output(composition_answer, "last");
+
+    return composition_answer;
+}
+// конец функции Func_Multiplication
+
+// функция, выполняющая операцию деления
+void Func_Division(string& remainder_string, int maxlength, string first, string second, string first_sign, string second_sign, vector <int>& division_answer, string& last_operation, int choice_user) // передаются первое и второе число и сумма длин строк, вектор ответа, строка с навзванием операции
+{
+    last_operation = "Division";
+    division_answer.clear(); // очистка вектора ответа
+
+    last_answer.clear(); // очистка строки ответа
+    vector <int> additional_vector; // дополнительный вектор
+    int additional_length = 0; // длина дополнительного вектора (дополнительной строки)
+    int comma_number = 0; // если это число не равно 0, заканчиваем цикл (отвечает за количество цифр после запятой)
+    int number_of_zeros = 0; // количество нулей, добавленных к делимому числу, если оно меньше делителя
+    int length_of_lines = 0; // сумма строк делителя и делимого
+    bool comma = false; // переменная, отвечающая за наличие запятой
+    int check = 0; // переменная, необходимая для проверки того, не состоит ли число полностью из нулей
+
+    vector <int> answer_division; // дополнительный вектор ответа
+
+    int j = 0; // итератор (если данная переменная равна длине делимого - присваиваем делимому 0 )
+
+    // если все цифры числа равны 0 - присваиваем 0
+    for (int i = 0; i < first.length(); i++)
+    {
+        if (first[i] == '0')
+            j++;
+    }
+    if (j == first.length())
+        first = "0";
+
+
+    // если числа не равны, первое и второе число не равны нулю, первое число не меньше второго
+    if ((Func_Comparison(first, second) != 3) && (second != "0") && (first != "0") && (Func_Comparison(first, second) != 2 && (first.length() >= second.length())))
+    {
+        length_of_lines = first.length() + second.length();
+
+        int i = 0; // итератор
+        int iter = 0; // итератор, показывающий количество дополнительно взятых нулей
+        string additional_string = ""; // дополнительная строка - буффер
+        bool indent = false; // переменная, отвечающая за отступ(например, делимое 12345, а делитель 220, то мы сделаем отступ в 1
+        // т.к. мы не можем вычесть 220 из 123, но зато можем из 1234)
+
+        vector<int> remainder_mas; // вектор, содержащий в себе остаток после деления
+        int result = 0; // переменная, отвечающая за хранение отдельных цифр числа ответа
+        bool division_cycle = true; // переменная, отвечающая за работу цикла деления (если false - выход из цикла)
+        int numbers_used = 0; // показывает количество цифр в делимом, которые уже не используются при делении
+        bool comparison_test = false; // проверка того, меньше ли делимое делителя (во избежание использования лишнего отступа) (если false - значит больше)
+
+        // проверка наличия отступа
+        if (second[0] > first[0])
+            indent = true;
+
+        if (second[0] < first[0])
+            indent = false;
+
+        if (second[0] == first[0])
+        {
+            while ((second[0 + i] == first[0 + i]) && (i != first.length() - 1) && (i != second.length() - 1))
+            {
+                i++;
+
+                if (second.length() - 1 == i) // в случае если число вычитается сразу без остатка (например делимое 12345 и делитель 123)
+                    indent = false;
+                if (first.length() - 1 == i)
+                    indent = true;
+
+                if (second[0 + i] > first[0 + i])
+                    indent = true;
+                else
+                    indent = false;
+
+            }
+
+        }
+        // конец проверки наличия отступа
+
+        // добавление дополнительных нулей делимому, если оно меньше делителя
+        while ((Func_Comparison(first, second) == 2) && (first != "0") && (second != "0"))
+        {
+            first = first + "0";
+
+            number_of_zeros++;
+
+            comparison_test = true;
+        }
+
+        if (comparison_test == false)
+        {
+            if (indent == true)
+            {
+                for (i = 0; i < second.length() + 1; i++)
+                {
+                    additional_string = additional_string + first[i];
+                }
+            }
+            else
+            {
+                for (i = 0; i < second.length(); i++)
+                {
+                    additional_string = additional_string + first[i];
+                }
+            }
+        }
+        else
+        {
+            additional_string = first;
+        }
+
+
+        additional_length = additional_string.length();
+
+        remainder_string = additional_string;
+
+        additional_string = "";
+
+        // очистка строк от лишних символов
+        for (i = 0; i < remainder_string.length(); i++)
+        {
+            if (remainder_string[i] == '0' || remainder_string[i] == '1' || remainder_string[i] == '2'
+                || remainder_string[i] == '3' || remainder_string[i] == '4' || remainder_string[i] == '5'
+                || remainder_string[i] == '6' || remainder_string[i] == '7' || remainder_string[i] == '8'
+                || remainder_string[i] == '9')
+            {
+                additional_string = additional_string + remainder_string[i];
+            }
+        }
+
+        int comma_check = 0; // если больше 0: завершить вычисления (вычисления дошли до запятой)
+        int numbers_in_use = 0; // показывает количество цифр в делимом, которые используются в момент работы программы
+
+        remainder_string = additional_string;
+
+        // начало цикла деления
+        while ((division_cycle == true) && (first != "0") && (second != "0"))
+        {
+            result = 0;
+
+            // проверка на наличие запятой, и, если она есть, завершение цикла
+            if ((comma == true) && (numbers_in_use + additional_length + numbers_used >= first.length()))
+                comma_number++;
+
+            if (comma_number + number_of_zeros > 0)
+                break;
+
+            // цикл нахождения количества вычитаний из делимого делителя, действующий пока делитель меньше делимого
+            while (Func_Comparison(remainder_string, second) == 1 || Func_Comparison(remainder_string, second) == 3)
+            {
+
+                remainder_mas = Func_Subtraction(maxlength, Func_Comparison(remainder_string, second), remainder_string, second, first_sign, second_sign, last_ans, last_operation, choice_user);
+
+                remainder_string = Func_Output(remainder_mas, "last");
+
+                result++;
+            }
+
+            // перевод остатка из вектора в строку
+            remainder_string = Func_Output(remainder_mas, "last");
+
+            // добавление количества вычитаний в вектор ответа
+            answer_division.push_back(result);
+
+            // обнаружение количества цифр, которые уже были использованы при вычитании
+            if (remainder_string != "0")
+                numbers_used = numbers_used + additional_string.length() - remainder_string.length(); // показывает количество цифр в делимом, которые не используются при делении
+            else
+                numbers_used = numbers_used + additional_string.length();
+
+            additional_vector = remainder_mas;
+
+            if (remainder_string == "0")
+                remainder_string = "";
+
+            additional_string = remainder_string;
+
+            // если остаток меньше делителя
+            while (Func_Comparison(remainder_string, second) == 2)
+            {
+
+                iter = 0;
+                comma_check = 0;
+                numbers_in_use = 0;
+
+
+                additional_length = additional_string.length();
+
+                if (additional_string == "0")
+                    additional_length = 0;
+
+                // добавление неиспользованных цифр из делимого к остатку
+                while ((Func_Comparison(additional_string, second) == 2) && (additional_length + numbers_used + numbers_in_use < first.length()))
+                {
+
+                    additional_string = additional_string + first[numbers_used + remainder_string.length() + iter];
+
+                    iter++;
+                    numbers_in_use++;
+                    comma_check++;
+
+                    // проверка, не состоил ли число полностью из нулей
+                    check = 0;
+                    for (j = 0; j < additional_string.length(); j++)
+                    {
+                        if (additional_string[j] == '0')
+                            check++;
+                    }
+
+                    if (check == additional_string.length())
+                        additional_string = "0";
+
+                }
+
+                additional_length = additional_string.length();
+
+                // переменная, отвечающая за сумму используемых цифр, использованных цифр и длины дополнительного вектора
+                int three_variable_lengths = numbers_in_use + additional_length + numbers_used;
+
+
+                if ((three_variable_lengths >= first.length()) && ((Func_Comparison(additional_string, second) == 2)))
+                {
+                    // если делится нацело
+                    if ((additional_string == "0") && (iter == 0))
+                    {
+                        division_cycle = false;
+
+                        break;
+                    }
+                    else
+                    {
+                        // иначе обьявление появления запятой
+                        if (Func_Comparison(additional_string, second) == 2)
+                        {
+                            if (comma == false)
+                            {
+                                comma = true;
+                            }
+
+                            iter++;
+
+                        }
+
+                    }
+
+                }
+
+                // добавление нулей в ответ
+                if ((iter > 1) || ((iter > 0) && (additional_string == "0")))
+                {
+                    for (i = 0; i < iter - 1; i++)
+                    {
+                        answer_division.push_back(0);
+
+                        //numbers_used++;
+                        numbers_in_use++;
+
+
+                        if ((comma == true) && (numbers_in_use + second.length() + numbers_used > first.length()) && (comma_check <= 0))
+                            comma_number++;
+
+                        comma_check--;
+                    }
+
+                    // возвращение в цикл деления
+                    remainder_string = additional_string;
+
+                    break;
+
+                }
+                else
+                {
+                    // иначе вернуться в цикл деления
+                    remainder_string = additional_string;
+
+                    break;
+
+                }
+
+            }
+
+        }
+
+
+    }
+
+    comma = false;
+
+    string answer_string;
+
+    // если делимое и делитель равны, ответу присвоить 1, а остатку 0
+    if (Func_Comparison(first, second) == 3)
+    {
+
+        answer_string = "1";
+
+        answer_division.push_back(1);
+
+        last_answer = answer_string;
+
+        remainder_string = "0";
+    }
+    else
+    {
+        // иначе, если делимое меньше делителя, ответу присвоить 0, а остатку присвоить делимое
+        if (Func_Comparison(first, second) == 2 && (first.length() <= second.length()))
+        {
+            answer_string = "0";
+
+            answer_division.push_back(0);
+
+            last_answer = answer_string;
+
+            remainder_string = first;
+        }
+        else
+        {
+            // иначе, если делимое равно нулю, присвоить ответ нулю
+            if (first == "0")
+            {
+                answer_string = "0";
+
+                answer_division.push_back(0);
+
+                last_answer = answer_string;
+
+                remainder_string = "0";
+            }
+            else
+            {
+                answer_string = Func_Output(answer_division, "first");
+
+                last_answer = answer_string;
+
+            }
+
+        }
+
+    }
+
+    // Распределение знаков
+
+    if (first_sign == "-" && second_sign == "-")
+        last_plus_minus = "+";
+
+    if (first_sign == "+" && second_sign == "+")
+        last_plus_minus = "+";
+
+    if ((first_sign == "-" && second_sign == "+") || (first_sign == "+" && second_sign == "-"))
+        last_plus_minus = "-";
+
+    last_operation = "Division";
+
+}
+// конец функции Func_Division
+
+// функция проверяющая наличие допустимых символов в числах, вводимых пользователем
+bool Valid_Character_Check(string tested_string)
+{
+    bool error_presence = false; // переменная, отвечающая за обозначение наличия ошибки или же ее отсутствие 
+
+    for (int i = 0; i < tested_string.length(); i++)
+    {
+        if (isdigit(tested_string[i]) == 0) // если символ не является числом
+        {
+            error_presence = true; // означает что была совершена ошибка
+            break;
+        }
+    }
+
+    return error_presence; // возвращение параметра
+}
+// конец функции Valid_Character_Check
+
+
+// функция для ввода строк
+string Entering_Numbers(string number_numb, string& sign)
+{
+    // открытие файлового потока на дозапись
+    ofstream log_file("log.txt", ios::app);
+
+    string numb; // переменная, хранящая строку, введённую пользователем
+
+        cout << "====================================================" << endl
+        << "Введите " << number_numb << " число:" << endl;
+    getline(cin, numb); // считывание вводимой пользователем строки
+
+    while (numb.length() < 1)
+    {
+        Date(log_file);
+
+        cout << "Введено пустое поле. Повторите ввод:" << endl;
+        getline(cin, numb); // считывание вводимой пользователем строки
+
+        log_file << "Введено пустое поле." << endl;
+
+    }
+
+    sign = Func_Cut_String(numb); // вызов функции нахождения плюса и минуса перед числом и их удаления
+
+    bool main_error_presence = Valid_Character_Check(numb); // проверка числа на корректность ввода
+
+    // проверка наличия допустимых символов в первом числе
+    while (main_error_presence != false)
+    {
+        Date(log_file);
+
+        cout << "\nПохоже вы ошиблись. Вводимое число должно быть целым и не должно содержать других символов" << endl
+            << "кроме цифр. (Исключение: первым символом могут быть знаки '+' и '-')" << endl
+            << "Повторите ввод:" << endl;
+        getline(cin, numb); // повторный ввод числа
+
+        log_file << "Ошибка. Введены некорректные символы." << endl;
+
+        sign = Func_Cut_String(numb); // нахождение и удаление знака перед числом
+        main_error_presence = Valid_Character_Check(numb); // проверка числа на корректность ввода
+    }
+
+
+    while (numb.length() == 0 && (sign == "+" || sign == "-"))
+    {
+        Date(log_file);
+
+        cout << "\nПохоже вы ошиблись. Вводимое число должно содержать в себе цифры." << endl
+            << "Повторите ввод:" << endl;
+
+        log_file << "Ошибка. Введен только знак." << endl;
+
+        getline(cin, numb); // повторный ввод числа
+
+        sign = Func_Cut_String(numb); // вызов функции нахождения плюса и минуса перед числом и их удаления
+
+        bool main_error_presence = Valid_Character_Check(numb); // проверка числа на корректность ввода
+
+        while (main_error_presence != false)
+        {
+            Date(log_file);
+
+            cout << "\nПохоже вы ошиблись. Вводимое число должно быть целым и не должно содержать других символов" << endl
+                << "кроме цифр. (Исключение: первым символом могут быть знаки '+' и '-')" << endl
+                << "Повторите ввод:" << endl;
+            getline(cin, numb); // повторный ввод числа
+
+            log_file << "Ошибка. Введены некорректные символы." << endl;
+
+            sign = Func_Cut_String(numb); // нахождение и удаление знака перед числом
+            main_error_presence = Valid_Character_Check(numb); // проверка числа на корректность ввода
+        }
+    }
+
+
+    int count = 0;
+    for (int i = 0; i < numb.length(); i++)
+    {
+        if (numb[i] == '0')
+            count++;
+    }
+
+    if (count == numb.length())
+        numb = "0";
+
+    return numb; // возвращение значения
+}
+// конец функции Entering_Numbers
+
+
+//функция вычисления итогового значения
+void Input_Choice_Calculation(bool long_calculation)
+{
+    string one_numb, two_numb; // строковые переменные, отвечающие за хранение чисел
+    int max_length = 0; //максимальная длинна массивов
+    string first_sign = " "; // переменная для хранения знака первого числа
+    string second_sign = " "; // переменная для хранения знака второго числа
+
+    if (long_calculation == true)
+    {
+        system("cls");
+
+        if (last_operation == "Addition") // если последней операцией было сложение
+        {
+            one_numb = Func_Output(last_ans, "first"); // запись в первое число последнего ответа
+
+            cout << "====================================================" << endl
+                << "Первое число (Ans):" << endl;
+
+            if ((last_plus_minus == "-") && (one_numb != "0"))
+            {
+                cout << last_plus_minus;
+            }
+
+            cout << one_numb << endl;
+        }
+        else
+        {
+            if (last_operation == "Division") // если последней операцией было деление
+            {
+                one_numb = last_answer; // запись в первое число последнего ответа
+
+                cout << "====================================================" << endl
+                    << "Первое число (Ans):" << endl;
+
+                if ((last_plus_minus == "-") && (one_numb != "0"))
+                {
+                    cout << last_plus_minus;
+                }
+
+                cout << one_numb << endl;
+            }
+            else
+            {
+                one_numb = Func_Output(last_ans, "last");
+
+                cout << "====================================================" << endl
+                    << "Первое число (Ans):" << endl;
+
+                if (last_plus_minus == "-" && one_numb != "0")
+                {
+                    cout << last_plus_minus;
+                }
+
+                cout << one_numb << endl;
+            }
+        }
+
+        first_sign = last_plus_minus;
+    }
+
+    else
+        one_numb = Entering_Numbers("первое", first_sign); // запись первого числа
+
+    two_numb = Entering_Numbers("второе", second_sign); // запись второго числа
+
+    // считаем длину всех чисел, суммируем
+    max_length = one_numb.length() + two_numb.length();
+
+    cout << "====================================================" << endl
+        << "Введите операцию над числами:" << endl
+        << "1 - Сумма; 2 - Разность; 3 - Умножение; 4 - Деление;" << endl;
+
+    int choice_user = _getch(); // переменная, отвечающая за выбор пользователем операции
+    while (choice_user != 49 && choice_user != 50 && choice_user != 51 && choice_user != 52)
+        choice_user = _getch();
+
+    // запись в консоль выбранной операции
+    cout << "====================================================" << endl;
+    cout << "Выбрана операция: ";
+
+    if (choice_user == 49)
+        cout << "Сумма" << endl;
+
+    if (choice_user == 50)
+        cout << "Разность" << endl;
+
+    if (choice_user == 51)
+        cout << "Умножение" << endl;
+
+    if (choice_user == 52)
+        cout << "Деление" << endl;
+
+
+
+    //=================================================================================//
+    // 
+// ЗНАКИ
+// Проверки знаков и, по необходимости, изменение выбора операции
+    int true_choice = 0; // переменная, отвечающая за код нажатой клавиши
+
+    if (choice_user == 49 && (first_sign == "+" && second_sign == "+" || first_sign == "-" && second_sign == "-"))
+        true_choice = 49; // будет реализована операция сложения
+
+    if (choice_user == 49 && (first_sign == "+" && second_sign == "-" || first_sign == "-" && second_sign == "+"))
+        true_choice = 50; // будет реализована операция вычитания
+
+    if (choice_user == 50 && (first_sign == "-" && second_sign == "-" || first_sign == "+" && second_sign == "+"))
+        true_choice = 50; // будет реализована операция вычитания
+
+    if (choice_user == 50 && (first_sign == "-" && second_sign == "+" || first_sign == "+" && second_sign == "-"))
+        true_choice = 49; // будет реализована операция сложения
+
+    if (choice_user == 51)
+        true_choice = 51;
+
+    if (choice_user == 52)
+        true_choice = 52;
+
+
+    //=================================================================================//
+    cout << "====================================================" << endl
+        << "Результат:" << endl;
+
+    // если выбрана операция сложения
+    if (true_choice == 49)
+    {
+        last_operation = "";
+        Func_Addition(max_length, one_numb, two_numb, first_sign, second_sign, last_ans, last_operation, choice_user);
+
+        if (choice_user == 49)
+            Recording_to_file(log_file, one_numb, two_numb, first_sign, second_sign, '+', last_answer); // запись в файл
+        if (choice_user == 50)
+            Recording_to_file(log_file, one_numb, two_numb, first_sign, second_sign, '-', last_answer); // запись в файл
+
+        if ((last_plus_minus == "-") && (last_answer != "0"))
+        {
+            cout << last_plus_minus;
+        }
+
+        cout << Func_Output(last_ans, "first"); // вывод результата вычислений
+    }
+
+
+    // если выбрана операция вычитания
+    if (true_choice == 50)
+    {
+        last_operation = "";
+        Func_Subtraction(max_length, Func_Comparison(one_numb, two_numb), one_numb, two_numb, first_sign, second_sign, last_ans, last_operation, choice_user);
+
+        if (choice_user == 49)
+            Recording_to_file(log_file, one_numb, two_numb, first_sign, second_sign, '+', Func_Output(last_ans, "last")); // запись в файл
+        if (choice_user == 50)
+            Recording_to_file(log_file, one_numb, two_numb, first_sign, second_sign, '-', Func_Output(last_ans, "last")); // запись в файл
+
+
+
+        if ((last_plus_minus == "-") && (Func_Output(last_ans, "last") != "0"))
+        {
+            cout << last_plus_minus;
+        }
+
+        cout << Func_Output(last_ans, "last"); // вывод результата вычислений
+    }
+
+    // если выбрана операция умножение
+    if (true_choice == 51)
+    {
+        last_operation = "";
+        Func_Multiplication(max_length, one_numb, two_numb, first_sign, second_sign, last_ans, last_operation, choice_user);
+        Recording_to_file(log_file, one_numb, two_numb, first_sign, second_sign, 'x', Func_Output(last_ans, "last")); // запись в файл
+
+        if ((last_plus_minus == "-") && (Func_Output(last_ans, "last") != "0"))
+        {
+            cout << last_plus_minus;
+
+        }
+
+        cout << Func_Output(last_ans, "last"); // вывод результата вычислений
+    }
+
+
+    // если выбрана операция деление
+    if (true_choice == 52)
+    {
+        last_operation = "";
+        int proveryaemdel = 0;
+        string ostatok;
+
+        for (int i = 0; i < two_numb.length(); i++)
+        {
+            if (two_numb[i] == '0')
+                proveryaemdel++;
+        }
+
+        if (proveryaemdel == two_numb.length())
+        {
+            cout << "Ошибка! На 0 делить нельзя." << endl;
+
+            last_operation = "Division";
+
+            Date(log_file);
+
+            log_file << "Ошибка. Попытка разделить на 0." << endl;
+
+        }
+        else
+        {
+            Func_Division(ostatok, max_length, one_numb, two_numb, first_sign, second_sign, last_ans, last_operation, choice_user);
+            Recording_to_file(log_file, one_numb, two_numb, first_sign, second_sign, '/', last_answer); // запись в файл
+
+            if ((last_plus_minus == "-") && (last_answer != "0"))
+            {
+                cout << last_plus_minus;
+            }
+
+            cout << last_answer << endl;
+
+            cout << "Остаток: ";
+
+            log_file << "Остаток: ";
+
+            if (ostatok == "")
+                ostatok = "0";
+
+            int proverka_nuley = 0;
+
+            for (int i = 0; i < ostatok.length(); i++)
+                if (ostatok[i] == '0')
+                    proverka_nuley++;
+
+            if (proverka_nuley == ostatok.length())
+                ostatok = "0";
+
+            if ((last_plus_minus == "-") && (last_answer != "0") && (ostatok != "0"))
+            {
+                cout << last_plus_minus;
+                log_file << last_plus_minus;
+            }
+
+            cout << ostatok << endl;
+
+            log_file << ostatok << endl;
+        }
+
+    }
+
+}
+
+//функция вывода меню на консоль
+void Main_menu()
+{
+    bool program_stop = false;
+    bool main_error_presence;
+
+    // открытие файлового потока на дозапись
+    ofstream log_file("log.txt", ios::app);
+
+    //пока не встречен служебный символ
+    while (program_stop == false)
+    {
+        system("cls"); // очитска экрана
+
+        // Создание главного меню программы
+        cout << "\n" << "===================================================" << endl
+            << "Добро пожаловать в калькулятор длинных целых чисел!" << endl
+            << "===================================================" << "\n" << endl;
+
+        cout << "Выберите 1, чтобы перейти к стандартному вычислению" << "\n" << endl;
+        cout << "Выберите 2, чтобы начать вычисления с предыдущим ответом" << "\n" << endl;
+        cout << "Выберите 3, чтобы перейти в меню дополнительных возможностей" << "\n" << endl;
+        cout << "Выберите Esc, чтобы завершить программу" << endl;
+
+        int user_choice = _getch(); // переменная, отвечающая за выбор пользователем операции
+        while (user_choice != 27 && user_choice != 49 && user_choice != 50 && user_choice != 51)
+            user_choice = _getch();
+
+        // если нажата клавиша <Esc>
+        if (user_choice == 27)
+            exit(0); // завершение программы
+
+
+        // если нажата клавиша <3>
+        if (user_choice == 51)
+        {
+            user_choice = 27;
+
+            while (user_choice == 27)
+            {
+                system("cls"); // очистка экрана
+
+                cout << "Выберите 1, чтобы посмотреть информацию о программе" << endl << endl;
+
+                cout << "Выберите D, чтобы очистить файл логирования" << endl << endl;
+
+                cout << "Выберите Esc, чтобы вернуться в главное меню." << endl;
+
+                user_choice = _getch(); // считывание кода клавиши, нажатой пользователем
+                    // пока не нажата клавиша <Escape>
+                while (user_choice != 49 && user_choice != 100 && user_choice != 27)
+                    user_choice = _getch(); // считывание кода клавиши
+
+                if (user_choice == 27)
+                {
+                    break;
+                }
+
+                if (user_choice == 49)
+                {
+                    system("cls"); // очистка экрана
+                // вывод информации
+                    cout << "=========================" << endl
+                        << "Информация о программе" << endl
+                        << "=========================" << endl
+                        << "Данная программа выполняет основные операции с длинными целыми числами." << "\n" << endl
+
+                        << "Функционал ПО:" << endl
+                        << "Реализованы основные операции над целыми длинными числами," << endl
+                        << "такие как сложение, вычитание, умножение и деление." << endl << endl
+                        << "Также в программе присутствует возможность выполнения длинных операций:" << endl
+                        << "использование последнего вычисленного ответа как первого вводимого числа" << endl
+                        << "для последующих с ним вычислений." << endl
+                        << "(Так как основные операции реализованы для целых длинных чисел,  возможность" << endl
+                        << "выполнения длинных операций для ответа, полученного после операции Деление," << endl
+                        << "отсутствует)" << endl
+
+                        << "Присутствует функция логирования: действия пользователя записываются" << endl
+                        << "в текстовый файл с названием log.txt. Файл создается в одной папке" << endl
+                        << "с исполняемым файлом." << "\n" << endl
+
+                        << "Выберите Esc, чтобы вернуться в меню дополнительных возможностей." << endl;
+
+                    user_choice = _getch(); // считывание кода клавиши, нажатой пользователем
+                    // пока не нажата клавиша <Escape>
+                    while (user_choice != 27)
+                        user_choice = _getch(); // считывание кода клавиши
+                }
+
+                if (user_choice == 100)
+                {
+                    system("cls"); // очистка экрана
+
+                    cout << endl << "Вы уверены? Данные будут безвозвратно удалены." << endl << endl
+
+                        << "Выберите Enter, чтобы удалить файл логирования." << endl << endl
+
+                        << "Выберите Esc, чтобы вернуться в меню дополнительных возможностей." << endl;
+
+                    user_choice = _getch(); // считывание кода клавиши, нажатой пользователем
+                    // пока не нажата клавиша <Escape>
+                    while (user_choice != 27 && user_choice != 13)
+                        user_choice = _getch(); // считывание кода клавиши
+
+                    if (user_choice == 13)
+                    {
+                        ofstream log_file("log.txt");
+
+                        system("cls"); // очистка экрана
+
+                        cout << endl << "Файл логирования был успешно очищен." << endl << endl
+
+                            << "Выберите Esc, чтобы вернуться в меню дополнительных возможностей." << endl;
+
+                        user_choice = _getch(); // считывание кода клавиши, нажатой пользователем
+                        // пока не нажата клавиша <Escape>
+                        while (user_choice != 27)
+                            user_choice = _getch(); // считывание кода клавиши
+                    }
+
+                }
+
+            }
+
+        }
+
+        // если нажата клавиша <1>
+        if (user_choice == 49)
+        {
+            int stop = 0;
+
+            system("cls");
+
+            Input_Choice_Calculation(false);
+
+            cout << "\n" << "\n" << "Чтобы вернуться в главное меню, нажмите Esc." << endl
+                << "Чтобы продолжить вычисления с полученным ответом нажмите Enter." << endl;
+
+
+            while (stop != 27 && stop != 13) // пока не нажата клавиша <Escape> или <Enter>
+                stop = _getch(); // считывание кода клавиши
+
+            if (stop == 27) // если нажата клавиша <Escape>
+            {
+                program_stop = false; // возвращение в главное меню
+                user_choice = 0;
+            }
+
+
+            if (stop == 13) // если нажата клавиша <Enter>
+                user_choice = 50;
+
+        }
+
+        // если нажата клавиша <2>
+        if (user_choice == 50)
+        {
+
+            bool continuation = true;
+
+            if (last_ans.empty()) // вектор ответа пустой
+            {
+                system("cls");
+
+                cout << "\n" << "В текущей сессии вы еще не совершали ни одной операции." << "\n" << endl
+                    << "Выберите Esc, чтобы вернуться в главное меню." << endl;
+
+                user_choice = _getch(); // считывание кода нажатой клавиши
+
+                while (user_choice != 27)
+                    user_choice = _getch();
+
+                continuation = false;
+            }
+
+
+            system("cls");
+
+            while (continuation == true)
+            {
+
+                Input_Choice_Calculation(true);
+
+                int stop = 0;
+
+                cout << "\n" << "\n" << "Чтобы вернуться в главное меню, нажмите Esc." << endl
+                    << "Чтобы продолжить вычисления с полученным ответом нажмите Enter." << endl;
+
+
+                while (stop != 27 && stop != 13) // пока не нажата клавиша <Escape> или <Enter>
+                    stop = _getch(); // считывание кода клавиши
+
+                if (stop == 27) // если нажата клавиша <Escape>
+                    continuation = false; // возвращение в главное меню
+
+                if (stop == 13) // если нажата клавиша <Enter>
+                    continuation = true;
+
+            }
+
+        }
+
+        //закрытие файла
+        log_file.close();
+    }
+}
+//конец функции
+
+// главная функция
+int main()
+{
+    setlocale(LC_ALL, "Russian");
+    Main_menu();
+
+    return 0;
+}
