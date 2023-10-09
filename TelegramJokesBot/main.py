@@ -7,7 +7,7 @@ from bs4 import BeautifulSoup as b
 # Основная ссылка на сайт, который будет парситься
 URL = 'https://www.anekdot.ru'
 # Уникальный токен для доступа к боту
-API_KEY = '5790537729:AAG3lRe-YxcgZHZpg5vDlKnLZfX27YV1pK8'
+API_KEY = 'КЛЮЧ АПИ'
 
 bot = telebot.TeleBot(API_KEY)
 
